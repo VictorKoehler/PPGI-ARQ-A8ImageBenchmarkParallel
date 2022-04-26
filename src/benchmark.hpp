@@ -19,6 +19,7 @@ struct BenchClock {
 };
 
 struct ImagingBenchmark {
+    virtual ~ImagingBenchmark() {}
     virtual int64_t benchmark(const char *file, bool verbose=false) const = 0;
     virtual const std::string getDesc() const = 0;
 };

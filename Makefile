@@ -44,9 +44,7 @@ CCFLAGS = $(CCOPT) -I./$(SRCDIR) -I./$(SRCDIR)/include
 #############################
 
 #### flags do linker
-#CCLNFLAGS = -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -lpthread -lGL -lGLU -lglut -lboost_program_options
-
-CCLNFLAGS = -lm -lpthread -ldl -lstdc++fs
+CCLNFLAGS = -lm -lpthread -ldl -lstdc++fs $(CCOPTFLAGS)
 #############################
 
 #### lista de todos os srcs e todos os objs

@@ -89,6 +89,10 @@ int main(int argc, const char* argv[]) {
 	std::cout << "# All benchmarks done, with a total sum of " << global_total << " " STRINGIFY(CLOCK_PRECISION) ",\n";
 	std::cout << "# or " << overhead << " " STRINGIFY(CLOCK_PRECISION) " counting with the overhead." << std::endl;
 
+    for (auto& bench : benchType) {
+        delete bench;
+    }
+
     return 0; // TODO: FSANITIZE
 }
 
