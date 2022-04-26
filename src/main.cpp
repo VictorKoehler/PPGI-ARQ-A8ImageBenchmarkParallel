@@ -7,11 +7,11 @@
 
 void dummy_warm_hardware_benchmark() {
     BenchClock clock;
-    std::cout << "Initializing dummy benchmark...\n";
+    std::cout << "# Initializing dummy benchmark...\n";
     ImagingAlgorithms<Image3D<PixelOrder::XYC, false>> d;
     Image3D<PixelOrder::XYC, false> di(5000, 5000, 3);
     d.channel_close_algorithms(di);
-    std::cout << "Dummy benchmark took " << clock.getElapsed() << " " STRINGIFY(CLOCK_PRECISION) "\n";
+    std::cout << "# Dummy benchmark took " << clock.getElapsed() << " " STRINGIFY(CLOCK_PRECISION) "\n";
 }
 
 /**
@@ -66,26 +66,28 @@ int main(int argc, const char* argv[]) {
     // Para evitar resultados imprecisos, cronometraremos apenas o tempo de execução dos algoritmos de conversão
     // de escala de cinza; desconsiderando, portanto, o tempo gasto e a eficiência da biblioteca de carregamento
     // de imagens (e da gambiarra de copiar para uma estrutura própria do autor deste trabalho).
-    std::cout << "Started\n";
+    std::cout << "# Started\n";
     int64_t global_total = 0;
 
     // Após o cronometro começar, percorremos todas as imagens aplicando-as os algoritmos.
     for (const auto& bench : benchType) {
-        if (!filter.empty() && filter.find(bench->getDesc()) == filter.end()) continue;
+        const auto bname = bench->getDesc();
+        if (!filter.empty() && filter.find(bname) == filter.end()) continue;
+
         int64_t total = 0;
-        std::cout << "Evaluating " << bench->getDesc() << "\n";
+        std::cout << "# Evaluating " << bname << "\n";
         for (int i = 0; i < filescount; i++) {
             auto t = bench->benchmark(files[i]);
             total += t;
-            std::cout << files[i] << ": " << t << " " STRINGIFY(CLOCK_PRECISION) "\n";
+            std::cout << bname << ", " << files[i] << ", " << t << " " STRINGIFY(CLOCK_PRECISION) "\n";
         }
         global_total += total;
-        std::cout << "Evaluation of " << bench->getDesc() << " finished with a total of " << total << " " STRINGIFY(CLOCK_PRECISION) "\n";
+        std::cout << "# Evaluation of " << bname << " finished with a total of " << total << " " STRINGIFY(CLOCK_PRECISION) "\n";
     }
 
     auto overhead = clock.getElapsed();
-	std::cout << "All benchmarks done, with a total sum of " << global_total << " " STRINGIFY(CLOCK_PRECISION) ",\n";
-	std::cout << "or " << overhead << " " STRINGIFY(CLOCK_PRECISION) " counting with the overhead." << std::endl;
+	std::cout << "# All benchmarks done, with a total sum of " << global_total << " " STRINGIFY(CLOCK_PRECISION) ",\n";
+	std::cout << "# or " << overhead << " " STRINGIFY(CLOCK_PRECISION) " counting with the overhead." << std::endl;
 
     return 0; // TODO: FSANITIZE
 }
