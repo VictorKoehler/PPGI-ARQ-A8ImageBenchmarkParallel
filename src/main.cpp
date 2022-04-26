@@ -1,5 +1,8 @@
 #include <iostream>
 #include <cinttypes>
+#include <vector>
+#include <random>
+#include <algorithm>
 #include "ImagingAlgorithms.hpp"
 
 void dummy_warm_hardware_benchmark() {
@@ -35,10 +38,11 @@ int main(int argc, const char* argv[]) {
     int filescount = argc-argc_decr;
     const char** files = argv+argc_decr;
 
+    // (Tenta) diminuir a influência dos boosts curtos e iniciais de processadores modernos
     dummy_warm_hardware_benchmark();
 
     // Setup das diferentes implementações de benchmarking
-    ImagingBenchmark* benchType[] = {
+    std::vector<ImagingBenchmark*> benchType = {
         new ImagingAlgorithms<Image3D<PixelOrder::XYC, false>>(),
         new ImagingAlgorithms<Image3D<PixelOrder::XYC, true>>(),
         new ImagingAlgorithms<Image3D<PixelOrder::XCY, false>>(),
@@ -52,6 +56,11 @@ int main(int argc, const char* argv[]) {
         new ImagingAlgorithms<Image3D<PixelOrder::CYX, false>>(),
         new ImagingAlgorithms<Image3D<PixelOrder::CYX, true>>()
     };
+
+    // Embaralha a ordem de invocação das implementações para garantir que não haja viés de ordem de execução, cache e boost
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(benchType.begin(), benchType.end(), g);
 
     // Carregar as imagens na memória é um processo custoso, geralmente penalizado em imagens grandes compactadas.
     // Para evitar resultados imprecisos, cronometraremos apenas o tempo de execução dos algoritmos de conversão
@@ -78,7 +87,7 @@ int main(int argc, const char* argv[]) {
 	std::cout << "All benchmarks done, with a total sum of " << global_total << " " STRINGIFY(CLOCK_PRECISION) ",\n";
 	std::cout << "or " << overhead << " " STRINGIFY(CLOCK_PRECISION) " counting with the overhead." << std::endl;
 
-    return 0;
+    return 0; // TODO: FSANITIZE
 }
 
 int _main_test_address() {
