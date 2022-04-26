@@ -7,6 +7,10 @@
 #include "ImagingAlgorithms.hpp"
 #include "include/tclap/CmdLine.h"
 
+#ifndef GITFLAG
+char const *const GIT_COMMIT = "******";
+#endif
+
 void dummy_warm_hardware_benchmark() {
     BenchClock clock;
     std::cout << "# Initializing dummy benchmark...\n";
@@ -64,7 +68,7 @@ int main(int argc, const char* argv[]) {
     // Para evitar resultados imprecisos, cronometraremos apenas o tempo de execução dos algoritmos de conversão
     // de escala de cinza; desconsiderando, portanto, o tempo gasto e a eficiência da biblioteca de carregamento
     // de imagens (e da gambiarra de copiar para uma estrutura própria do autor deste trabalho).
-    std::cout << "# Started\n";
+    std::cout << "# Started Simple Image Benchmark (" << GIT_COMMIT << ")\n";
     int64_t global_total = 0;
 
     // Após o cronometro começar, percorremos todas as imagens aplicando-as os algoritmos.
@@ -75,9 +79,7 @@ int main(int argc, const char* argv[]) {
         int64_t total = 0;
         std::cout << "# Evaluating " << bname << "\n";
         for (const auto& file : files.getValue()) {
-            auto t = bench->benchmark(file.c_str());
-            total += t;
-            std::cout << bname << ", " << file << ", " << t << " " STRINGIFY(CLOCK_PRECISION) "\n";
+            total += bench->benchmark(file.c_str(), true);
         }
         global_total += total;
         std::cout << "# Evaluation of " << bname << " finished with a total of " << total << " " STRINGIFY(CLOCK_PRECISION) "\n";

@@ -132,13 +132,16 @@ struct ImagingAlgorithms : public ImagingBenchmark {
         return dst;
     }
 
-    virtual int64_t benchmark(const char *file) const override {
+    virtual int64_t benchmark(const char *file, bool verbose) const override {
         ImageType i2d(file); // Carrega a imagem e o buffer auxiliar na memória.
         ImageType dst(i2d.getWidth(), i2d.getHeight(), i2d.getChannels());
 
         BenchClock clock;
         channel_close_algorithms(i2d, dst); // Cronometra a execução desta função
-        return clock.getElapsed();
+        auto elapsed = clock.getElapsed();
+        if (verbose) std::cout << getDesc() << ", " << file << ", " << i2d.getWidth() << ", " << i2d.getHeight() << ", "
+                               << i2d.getChannels() << ", " << elapsed << " " STRINGIFY(CLOCK_PRECISION) "\n";
+        return elapsed;
     }
 
     virtual const std::string getDesc() const override {

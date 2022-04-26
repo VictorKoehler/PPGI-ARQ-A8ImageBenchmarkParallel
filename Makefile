@@ -1,3 +1,5 @@
+$(shell echo "#include \"benchmark.hpp\"\n\n#ifdef GITFLAG\nchar const *const GIT_COMMIT = \"$$(git rev-parse --short HEAD)\";\n#endif" > src/include/version.cpp.tmp; if diff -q src/include/version.cpp.tmp src/include/version.cpp >/dev/null 2>&1; then rm src/include/version.cpp.tmp; else mv src/include/version.cpp.tmp src/include/version.cpp; fi)
+
 #### define o compilador
 CPPC = g++
 
@@ -18,7 +20,7 @@ ifeq ($(FSANITIZE), 1)
    lFSANFLAGS = -fsanitize=address -fsanitize=leak -fsanitize=null -fsanitize=signed-integer-overflow
 endif
 
-CCOPTFLAGS = $(lCCOPTFLAGS) $(lFSANFLAGS) -Wall -Wextra -Wl,--no-relax -std=c++17
+CCOPTFLAGS = $(lCCOPTFLAGS) $(lFSANFLAGS) -DGITFLAG -Wall -Wextra -Wl,--no-relax -std=c++17
 #############################
 
 #### diretorios com os source files e com os objs files
