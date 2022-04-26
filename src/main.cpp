@@ -1,9 +1,11 @@
-#include <iostream>
+#include <sstream>
 #include <cinttypes>
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <unordered_set>
 #include "ImagingAlgorithms.hpp"
+#include "include/tclap/CmdLine.h"
 
 void dummy_warm_hardware_benchmark() {
     BenchClock clock;
@@ -23,23 +25,19 @@ void dummy_warm_hardware_benchmark() {
 int main(int argc, const char* argv[]) {
     BenchClock clock;
 
-    int argc_decr = 1;
-    std::set<std::string> filter;
-    if (argc >= 3 && argv[1][0] == '-' && argv[1][1] == 'f') {
-        std::stringstream ss(argv[2]);
-        std::string item;
-        while (std::getline(ss, item, ',')) {
-            filter.insert(item);
-        }
-        argc_decr += 2;
-    }
-    
-    // Setup das variáveis
-    int filescount = argc-argc_decr;
-    const char** files = argv+argc_decr;
+    // Interpreta a linha de comando
+    TCLAP::CmdLine parser("Image benchmark");
+    TCLAP::SwitchArg arg_dummy("d", "dummy", "Disables dummy warm benchmark on startup", parser);
+    TCLAP::MultiArg<std::string> arg_filter("f", "filter", "Filter what implementations/algorithms will be used",
+        false, "algorithm", parser);
+    TCLAP::UnlabeledMultiArg<std::string> files("files", "Input images", true, "image-path", parser);
+    parser.parse(argc, argv);
 
     // (Tenta) diminuir a influência dos boosts curtos e iniciais de processadores modernos
-    dummy_warm_hardware_benchmark();
+    if (!arg_dummy.isSet()) dummy_warm_hardware_benchmark();
+
+    // Contém os algoritmos filtrados pelo usuário (ou nenhum)
+    std::unordered_set<std::string> filter(arg_filter.getValue().begin(), arg_filter.getValue().end());
 
     // Setup das diferentes implementações de benchmarking
     std::vector<ImagingBenchmark*> benchType = {
@@ -76,10 +74,10 @@ int main(int argc, const char* argv[]) {
 
         int64_t total = 0;
         std::cout << "# Evaluating " << bname << "\n";
-        for (int i = 0; i < filescount; i++) {
-            auto t = bench->benchmark(files[i]);
+        for (const auto& file : files.getValue()) {
+            auto t = bench->benchmark(file.c_str());
             total += t;
-            std::cout << bname << ", " << files[i] << ", " << t << " " STRINGIFY(CLOCK_PRECISION) "\n";
+            std::cout << bname << ", " << file << ", " << t << " " STRINGIFY(CLOCK_PRECISION) "\n";
         }
         global_total += total;
         std::cout << "# Evaluation of " << bname << " finished with a total of " << total << " " STRINGIFY(CLOCK_PRECISION) "\n";
