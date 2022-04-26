@@ -2,6 +2,15 @@
 #include <cinttypes>
 #include "ImagingAlgorithms.hpp"
 
+void dummy_warm_hardware_benchmark() {
+    BenchClock clock;
+    std::cout << "Initializing dummy benchmark...\n";
+    ImagingAlgorithms<Image3D<PixelOrder::XYC, false>> d;
+    Image3D<PixelOrder::XYC, false> di(5000, 5000, 3);
+    d.channel_close_algorithms(di);
+    std::cout << "Dummy benchmark took " << clock.getElapsed() << " " STRINGIFY(CLOCK_PRECISION) "\n";
+}
+
 /**
  * Main do Projeto
  * Recebe o caminho relativo de imagens como argumentos da linha de comando.
@@ -25,6 +34,8 @@ int main(int argc, const char* argv[]) {
     // Setup das variáveis
     int filescount = argc-argc_decr;
     const char** files = argv+argc_decr;
+
+    dummy_warm_hardware_benchmark();
 
     // Setup das diferentes implementações de benchmarking
     ImagingBenchmark* benchType[] = {
