@@ -20,6 +20,13 @@ void dummy_warm_hardware_benchmark() {
     std::cout << "# Dummy benchmark took " << clock.getElapsed() << " " STRINGIFY(CLOCK_PRECISION) "\n";
 }
 
+template<typename T>
+void auto_shuffle_(T& t) {
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(t.begin(), t.end(), g);
+}
+
 /**
  * Main do Projeto
  * Recebe o caminho relativo de imagens como argumentos da linha de comando.
@@ -28,20 +35,6 @@ void dummy_warm_hardware_benchmark() {
  */
 int main(int argc, const char* argv[]) {
     BenchClock clock;
-
-    // Interpreta a linha de comando
-    TCLAP::CmdLine parser("Image benchmark");
-    TCLAP::SwitchArg arg_dummy("d", "dummy", "Disables dummy warm benchmark on startup", parser);
-    TCLAP::MultiArg<std::string> arg_filter("f", "filter", "Filter what implementations/algorithms will be used",
-        false, "algorithm", parser);
-    TCLAP::UnlabeledMultiArg<std::string> files("files", "Input images", true, "image-path", parser);
-    parser.parse(argc, argv);
-
-    // (Tenta) diminuir a influência dos boosts curtos e iniciais de processadores modernos
-    if (!arg_dummy.isSet()) dummy_warm_hardware_benchmark();
-
-    // Contém os algoritmos filtrados pelo usuário (ou nenhum)
-    std::unordered_set<std::string> filter(arg_filter.getValue().begin(), arg_filter.getValue().end());
 
     // Setup das diferentes implementações de benchmarking
     std::vector<ImagingBenchmark*> benchType = {
@@ -59,10 +52,35 @@ int main(int argc, const char* argv[]) {
         new ImagingAlgorithms<Image3D<PixelOrder::CYX, true>>()
     };
 
+    // Interpreta a linha de comando
+    std::vector<std::string> allowed;
+    for (const auto& i : benchType) {
+        allowed.push_back(i->getDesc());
+    }
+    TCLAP::ValuesConstraint<std::string> allowedVals(allowed);
+
+    TCLAP::CmdLine parser("Image benchmark");
+    TCLAP::SwitchArg arg_dummy("d", "dummy", "Disables dummy warm benchmark on startup", parser);
+    TCLAP::SwitchArg arg_pfilter("", "print-filter-choices", "Print implementations available and exit", parser);
+    TCLAP::MultiArg<std::string> arg_filter("f", "filter", "Filter what implementations/algorithms will be used",
+        false, &allowedVals, parser);
+    TCLAP::UnlabeledMultiArg<std::string> files("files", "Input images", true, "image-path", parser);
+    parser.parse(argc, argv);
+
+    if (arg_pfilter.isSet()) {
+        auto_shuffle_(allowed);
+        for (const auto& i : allowed) std::cout << i << "\n";
+        exit(0);
+    }
+
+    // (Tenta) diminuir a influência dos boosts curtos e iniciais de processadores modernos
+    if (!arg_dummy.isSet()) dummy_warm_hardware_benchmark();
+
+    // Contém os algoritmos filtrados pelo usuário (ou nenhum)
+    std::unordered_set<std::string> filter(arg_filter.getValue().begin(), arg_filter.getValue().end());
+
     // Embaralha a ordem de invocação das implementações para garantir que não haja viés de ordem de execução, cache e boost
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(benchType.begin(), benchType.end(), g);
+    auto_shuffle_(benchType);
 
     // Carregar as imagens na memória é um processo custoso, geralmente penalizado em imagens grandes compactadas.
     // Para evitar resultados imprecisos, cronometraremos apenas o tempo de execução dos algoritmos de conversão
