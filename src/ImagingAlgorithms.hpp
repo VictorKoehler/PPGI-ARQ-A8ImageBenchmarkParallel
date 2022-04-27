@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <unordered_set>
 
 #include "Image3D.hpp"
 #include "benchmark.hpp"
@@ -32,9 +33,15 @@
 // Esse é um for-aninhado-triplo das coordenadas x, y e c, todos inteiros, de uma imagem
 #define triforImg(img, x_var, y_var, c_var) triforT(y_var, img.getHeight(), x_var, img.getWidth(), c_var, i2d.getChannels(), uint)
 
-template<typename ImageType>
-struct ImagingAlgorithms : public ImagingBenchmark {
 
+struct ImagingAlgorithmsBase : public ImagingBenchmark {
+    virtual const std::vector<std::string> getAlgorithms() const = 0;
+    virtual bool isEnabled(const std::string& a) const = 0;
+    virtual void setEnabled(const std::string& a, bool isEnabled) = 0;
+};
+
+template<typename ImageType>
+struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     /**
      * Método Averaging
      * Método #1 de https://www.tannerhelland.com/3643/grayscale-image-algorithm-vb6/
@@ -117,16 +124,16 @@ struct ImagingAlgorithms : public ImagingBenchmark {
      * i2d: Ponteiro para a imagem original.
      * dst: Destino/Buffer temporário para a escrita da saída.
      */
-    static void channel_close_algorithms(ImageType &i2d, ImageType &dst) {
-        averaging(i2d, dst);
-        luma(i2d, dst);
-        blur(i2d, dst);
-        desaturation(i2d, dst);
-        de_composition_max(i2d, dst);
-        de_composition_min(i2d, dst);
+    void channel_close_algorithms(ImageType &i2d, ImageType &dst) const {
+        if (isEnabled("averaging")) averaging(i2d, dst);
+        if (isEnabled("luma")) luma(i2d, dst);
+        if (isEnabled("blur")) blur(i2d, dst);
+        if (isEnabled("desaturation")) desaturation(i2d, dst);
+        if (isEnabled("de_composition_max")) de_composition_max(i2d, dst);
+        if (isEnabled("de_composition_min")) de_composition_min(i2d, dst);
     }
 
-    static ImageType channel_close_algorithms(ImageType &i2d) {
+    ImageType channel_close_algorithms(ImageType &i2d) const {
         ImageType dst(i2d.getWidth(), i2d.getHeight(), i2d.getChannels());
         channel_close_algorithms(i2d, dst);
         return dst;
@@ -147,4 +154,20 @@ struct ImagingAlgorithms : public ImagingBenchmark {
     virtual const std::string getDesc() const override {
         return ImageType::__implementation_type();
     }
+
+    bool isEnabled(const std::string& a) const override {
+        return enabled.empty() || enabled.find(a) != enabled.end();
+    }
+
+    void setEnabled(const std::string& a, bool isEnabled_) override {
+        if (isEnabled_) enabled.insert(a);
+        else enabled.erase(a);
+    }
+
+    const std::vector<std::string> getAlgorithms() const override {
+        return {"averaging", "luma", "blur", "desaturation", "de_composition_max", "de_composition_min"};
+    }
+
+   protected:
+    std::unordered_set<std::string> enabled;
 };

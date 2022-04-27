@@ -37,7 +37,7 @@ int main(int argc, const char* argv[]) {
     BenchClock clock;
 
     // Setup das diferentes implementações de benchmarking
-    std::vector<ImagingBenchmark*> benchType = {
+    std::vector<ImagingAlgorithmsBase*> benchType = {
         new ImagingAlgorithms<Image3D<PixelOrder::XYC, false>>(),
         new ImagingAlgorithms<Image3D<PixelOrder::XYC, true>>(),
         new ImagingAlgorithms<Image3D<PixelOrder::XCY, false>>(),
@@ -53,23 +53,29 @@ int main(int argc, const char* argv[]) {
     };
 
     // Interpreta a linha de comando
-    std::vector<std::string> allowed;
+    std::vector<std::string> f_allowed, a_allowed = benchType[0]->getAlgorithms();
     for (const auto& i : benchType) {
-        allowed.push_back(i->getDesc());
+        f_allowed.push_back(i->getDesc());
     }
-    TCLAP::ValuesConstraint<std::string> allowedVals(allowed);
+    TCLAP::ValuesConstraint<std::string> f_allowedVals(f_allowed), a_allowedVals(a_allowed);
 
     TCLAP::CmdLine parser("Image benchmark");
     TCLAP::SwitchArg arg_dummy("d", "dummy", "Disables dummy warm benchmark on startup", parser);
-    TCLAP::SwitchArg arg_pfilter("", "print-filter-choices", "Print implementations available and exit", parser);
-    TCLAP::MultiArg<std::string> arg_filter("f", "filter", "Filter what implementations/algorithms will be used",
-        false, &allowedVals, parser);
+    TCLAP::SwitchArg arg_pifilter("", "print-filter-implementations-choices", "Print implementations available and exit", parser);
+    TCLAP::SwitchArg arg_pafilter("", "print-filter-algorithms-choices", "Print benchmark-algorithms available and exit", parser);
+    TCLAP::MultiArg<std::string> arg_filter("f", "filter", "Filter what implementations will be used", false, &f_allowedVals, parser);
+    TCLAP::MultiArg<std::string> arg_afilter("a", "algorithm", "Filter what benchmark-algorithms will be used", false, &a_allowedVals, parser);
     TCLAP::UnlabeledMultiArg<std::string> files("files", "Input images", true, "image-path", parser);
     parser.parse(argc, argv);
 
-    if (arg_pfilter.isSet()) {
-        auto_shuffle_(allowed);
-        for (const auto& i : allowed) std::cout << i << "\n";
+    if (arg_pafilter.isSet()) {
+        for (const auto& i : a_allowed) std::cout << i << "\n";
+        exit(0);
+    }
+
+    if (arg_pifilter.isSet()) {
+        auto_shuffle_(f_allowed);
+        for (const auto& i : f_allowed) std::cout << i << "\n";
         exit(0);
     }
 
@@ -93,6 +99,11 @@ int main(int argc, const char* argv[]) {
     for (const auto& bench : benchType) {
         const auto bname = bench->getDesc();
         if (!filter.empty() && filter.find(bname) == filter.end()) continue;
+        if (arg_afilter.isSet()) {
+            for (const auto& a : arg_afilter.getValue()) {
+                bench->setEnabled(a, true);
+            }
+        }
 
         int64_t total = 0;
         std::cout << "# Evaluating " << bname << "\n";
