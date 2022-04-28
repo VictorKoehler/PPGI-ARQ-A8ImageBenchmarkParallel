@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <unordered_set>
+#include <limits>
 
 #include "Image3D.hpp"
 #include "benchmark.hpp"
@@ -68,6 +69,23 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
 
     }
 
+    /**
+     * Método de detecção de bordas Sobel
+     * Formulação da função G=SQRT(G_x^2 + G_y^2): https://en.wikipedia.org/wiki/Sobel_operator
+     */
+    static void sobel(ImageType &i2d, ImageType &dst) {
+        const auto pvmax = std::numeric_limits<typename ImageType::pixel_unit>::max();
+        const auto maxdiv_p0 = 4*pvmax, maxdiv_p1 = 2*pvmax;
+        const auto maxdiv = std::sqrt(maxdiv_p0*maxdiv_p0 + maxdiv_p1*maxdiv_p1);
+        // This comes from the following matrix: [[255 255 255] [255 0 0] [0 0 0]] which maximizes the Sobel filter
+
+        triforImg(i2d, x, y, c) {
+            if (x == 0 || y == 0 || x == i2d.getWidth()-1 || y == i2d.getHeight()-1) continue;
+            int hor = int(i2d(x-1, y-1, c) + 2*int(i2d(x, y-1, c)) + i2d(x+1, y-1, c)) - int(i2d(x-1, y+1, c) + 2*int(i2d(x, y+1, c)) + i2d(x+1, y+1, c));
+            int ver = int(i2d(x-1, y-1, c) + 2*int(i2d(x-1, y, c)) + i2d(x-1, y+1, c)) - int(i2d(x+1, y-1, c) + 2*int(i2d(x+1, y, c)) + i2d(x+1, y+1, c));
+            dst(x, y, c) = pvmax*(std::sqrt(hor*hor + ver*ver)/maxdiv);
+        }
+    }
 
     /**
      * Método Blur colorido
@@ -127,6 +145,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     void channel_close_algorithms(ImageType &i2d, ImageType &dst) const {
         if (isEnabled("averaging")) averaging(i2d, dst);
         if (isEnabled("luma")) luma(i2d, dst);
+        if (isEnabled("sobel")) sobel(i2d, dst);
         if (isEnabled("blur")) blur(i2d, dst);
         if (isEnabled("desaturation")) desaturation(i2d, dst);
         if (isEnabled("de_composition_max")) de_composition_max(i2d, dst);
@@ -148,6 +167,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
         auto elapsed = clock.getElapsed();
         if (verbose) std::cout << getDesc() << ", " << file << ", " << i2d.getWidth() << ", " << i2d.getHeight() << ", "
                                << i2d.getChannels() << ", " << elapsed << " " STRINGIFY(CLOCK_PRECISION) "\n";
+        //dst.save(("output/"+std::string(file)).c_str());
         return elapsed;
     }
 
@@ -165,7 +185,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     }
 
     const std::vector<std::string> getAlgorithms() const override {
-        return {"averaging", "luma", "blur", "desaturation", "de_composition_max", "de_composition_min"};
+        return {"averaging", "luma", "sobel", "blur", "desaturation", "de_composition_max", "de_composition_min"};
     }
 
    protected:
