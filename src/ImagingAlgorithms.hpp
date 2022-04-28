@@ -88,6 +88,54 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     }
 
     /**
+     * Método de detecção de bordas Sobel
+     * Formulação da função G=SQRT(G_x^2 + G_y^2): https://en.wikipedia.org/wiki/Sobel_operator
+     * Tentei substituir a raiz quadrada por uma busca binária. Não deu muito certo :/
+     */
+    static void sobel_v2(ImageType &i2d, ImageType &dst) {
+        using pu = typename ImageType::pixel_unit;
+        const auto pvmax = std::numeric_limits<pu>::max();
+        const auto maxdiv_p0 = 4*pvmax, maxdiv_p1 = 2*pvmax;
+        const auto maxdiv = std::sqrt(maxdiv_p0*maxdiv_p0 + maxdiv_p1*maxdiv_p1);
+        // This comes from the following matrix: [[255 255 255] [255 0 0] [0 0 0]] which maximizes the Sobel filter
+        assert(pvmax == 255);
+        int bsrch[pvmax];
+        for (pu i = 0; i < pvmax; i++) {
+            const auto i_ = double((i+1)*maxdiv)/double(pvmax);
+            bsrch[i] = int(i_*i_);
+        }
+
+        triforImg(i2d, x, y, c) {
+            if (x == 0 || y == 0 || x == i2d.getWidth()-1 || y == i2d.getHeight()-1) continue;
+            const int hor = int(i2d(x-1, y-1, c) + 2*int(i2d(x, y-1, c)) + i2d(x+1, y-1, c)) - int(i2d(x-1, y+1, c) + 2*int(i2d(x, y+1, c)) + i2d(x+1, y+1, c));
+            const int ver = int(i2d(x-1, y-1, c) + 2*int(i2d(x-1, y, c)) + i2d(x-1, y+1, c)) - int(i2d(x+1, y-1, c) + 2*int(i2d(x+1, y, c)) + i2d(x+1, y+1, c));
+            
+            const int g2 = hor*hor + ver*ver;
+            pu a = 0, z = pvmax, curr;
+            while (a != z) {
+                curr = (a+z)/2;
+                if (g2 < bsrch[curr]) z = curr;
+                else a = curr+1;
+            }
+            dst(x, y, c) = a;
+            #ifdef ONDEBUG
+            if (std::abs(int(pu(pvmax*(std::sqrt(g2)/maxdiv))) - int(a)) >= 2) {
+                std::cerr << "sobel and sobel_v2 equivalence test failed: g2=" << g2 << "\nmaxdiv=" << maxdiv << "\npvmax=" << int(pvmax)
+                          << "\ng2'=" << pvmax*(std::sqrt(g2)/maxdiv) << "\npu(g2')=" << int(pu(pvmax*(std::sqrt(g2)/maxdiv))) << "\na="
+                          << int(a) << "\nbrsch[:]= {";
+                for (int _ai = std::max(0, a-3); _ai < std::min(int(pvmax), a+3); _ai++) {
+                    const double i_ = double((_ai+1)*maxdiv)/double(pvmax), i2 = i_*i_;
+                    std::cerr << "  " << _ai << ": " << bsrch[_ai] << " << " << i_ << "²=" << std::to_string(i2) << "=" << int(i_*i_) << ",\n";
+                }
+                std::cerr << "}\n" << std::endl;
+            }
+            #endif
+            assert(std::abs(int(pu(pvmax*(std::sqrt(g2)/maxdiv))) - int(a)) < 2 && "This assertion should occour only after previous if");
+        }
+    }
+
+
+    /**
      * Método Blur colorido
      */
     static void blur(ImageType &i2d, ImageType &dst) {
@@ -146,6 +194,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
         if (isEnabled("averaging")) averaging(i2d, dst);
         if (isEnabled("luma")) luma(i2d, dst);
         if (isEnabled("sobel")) sobel(i2d, dst);
+        if (isEnabled("sobel_v2")) sobel_v2(i2d, dst);
         if (isEnabled("blur")) blur(i2d, dst);
         if (isEnabled("desaturation")) desaturation(i2d, dst);
         if (isEnabled("de_composition_max")) de_composition_max(i2d, dst);
@@ -185,7 +234,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     }
 
     const std::vector<std::string> getAlgorithms() const override {
-        return {"averaging", "luma", "sobel", "blur", "desaturation", "de_composition_max", "de_composition_min"};
+        return {"averaging", "luma", "sobel", "sobel_v2", "blur", "desaturation", "de_composition_max", "de_composition_min"};
     }
 
    protected:

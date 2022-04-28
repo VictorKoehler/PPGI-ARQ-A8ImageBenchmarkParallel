@@ -13,13 +13,14 @@ enum class PixelOrder : unsigned {
 
 const std::string _PixelOrder_getRepr(const PixelOrder& i);
 
-typedef unsigned char pixel_unit;
+typedef unsigned char default_pixel_unit;
 
 #define __I3D__obj_assert(f, s, t) assert(f < _dfw); assert(s < _dsh); assert(t < _dtc);
-#define __I3D__obj_calc(f, s, t) if constexpr (memblock) { return buff[f*_dsh*_dtc + s*_dtc + t]; } else { return buff[f][s][t]; }
+#define __I3D__obj_calc(f, s, t) __I3D__obj_assert(f, s, t); if constexpr (memblock) { return buff[f*_dsh*_dtc + s*_dtc + t]; } else { return buff[f][s][t]; }
 
 template<PixelOrder order, bool memblock>
 struct Image3D {
+    typedef default_pixel_unit pixel_unit;
    protected:
     template<typename R, typename T>
     static constexpr inline R at_order(T t, uint first, uint second, uint third) { 
@@ -41,8 +42,8 @@ struct Image3D {
     using BufferType = typename std::conditional<b, pixel_unit*, pixel_unit***>::type;
     BufferType<memblock> buff;
 
-    constexpr inline const pixel_unit& _obj(uint f, uint s, uint t) const { __I3D__obj_assert(f, s, t); __I3D__obj_calc(f, s, t) }
-    constexpr inline       pixel_unit& _obj(uint f, uint s, uint t)       { __I3D__obj_assert(f, s, t); __I3D__obj_calc(f, s, t) }
+    constexpr inline const pixel_unit& _obj(uint f, uint s, uint t) const { __I3D__obj_calc(f, s, t) }
+    constexpr inline       pixel_unit& _obj(uint f, uint s, uint t)       { __I3D__obj_calc(f, s, t) }
     
     void init(uint w, uint h, uint c);
 
