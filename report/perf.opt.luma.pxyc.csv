@@ -1,0 +1,7 @@
+# Invoked with: 'output/bin/solver' '-d' '-a' 'luma' '-f' 'Pointers@XYC' 'input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg'
+# Started Simple Image Benchmark (9647b40)
+# Evaluating Pointers@XYC
+Pointers@XYC, input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg, 12821, 5591, 3, 14514548 microseconds
+# Evaluation of Pointers@XYC finished with a total of 14514548 microseconds
+# All benchmarks done, with a total sum of 14514548 microseconds,
+# or 42611647 microseconds counting with the overhead.
