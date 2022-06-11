@@ -4,23 +4,30 @@ $(shell echo "#include \"benchmark.hpp\"\n\n#ifdef GITFLAG\nchar const *const GI
 CPPC = g++
 
 ifeq ($(DEBUG), 1)
-   lCCOPTFLAGS = -O0 -g3 -DONDEBUG -fno-omit-frame-pointer
+   lCCOPTFLAGS = -O0 -DONDEBUG -fno-omit-frame-pointer
    ifeq ($(FSANITIZE),)
       FSANITIZE = 1
    endif
-else
-   ifeq ($(SYMBOLS), 1)
-      lCCOPTFLAGS = -O5 -g3 -DNDEBUG
-   else
-      lCCOPTFLAGS = -O5 -DNDEBUG
+   ifeq ($(SYMBOLS),)
+      SYMBOLS = 1
    endif
+else
+   lCCOPTFLAGS = -O3 -DNDEBUG -march=native -ffast-math
 endif
 
 ifeq ($(FSANITIZE), 1)
    lFSANFLAGS = -fsanitize=address -fsanitize=leak -fsanitize=null -fsanitize=signed-integer-overflow
 endif
 
-CCOPTFLAGS = $(lCCOPTFLAGS) $(lFSANFLAGS) -DGITFLAG -Wall -Wextra -Wl,--no-relax -std=c++17
+ifeq ($(SYMBOLS), 1)
+   lSYMBOLSFLAGS = -g3
+endif
+
+ifeq ($(PARALLELIZE), 1)
+   lPARALLELIZEFLAGS = -DPARALLELIZE -fopenmp
+endif
+
+CCOPTFLAGS = $(lCCOPTFLAGS) $(lFSANFLAGS) $(lSYMBOLSFLAGS) $(lPARALLELIZEFLAGS) -DGITFLAG -Wall -Wextra -Wl,--no-relax -std=c++17
 #############################
 
 #### diretorios com os source files e com os objs files
@@ -30,6 +37,8 @@ ifdef $(OBJDIR)
 else
    ifeq ($(DEBUG), 1)
       OBJDIR = output/bin/debug
+   else ifeq ($(PARALLELIZE), 1)
+      OBJDIR = output/bin/parallel
    else
       OBJDIR = output/bin
    endif

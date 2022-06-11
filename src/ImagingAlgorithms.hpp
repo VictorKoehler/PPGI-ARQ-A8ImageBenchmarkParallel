@@ -10,16 +10,28 @@
 // Aqui apenas criamos um atalho para dois ou três fors aninhados
 //
 
+#ifdef PARALLELIZE
+#include <omp.h>
+#define ONLY_IN_PARALLEL(x) x
+#else
+#define ONLY_IN_PARALLEL(x)
+#endif
+
 // Esse é um for-aninhado na qual as variáveis x e y são do tipo T.
 // Os limites de x é (0, xl) e de y é (0, yl)
-#define biforT(x, xl, y, yl, T) \
-    for (T x = 0; x < xl; x++)  \
+#define biforT_s(x, xl, y, yl, T)  \
+    for (T x = 0; x < xl; x++)     \
         for (T y = 0; y < yl; y++)
+
+#define biforT(x, xl, y, yl, T)                               \
+    ONLY_IN_PARALLEL(_Pragma("omp parallel for collapse(2)")) \
+    biforT_s(x, xl, y, yl, T)
 
 // Esse é um for-aninhado-triplo na qual as variáveis x, y e z são do tipo T.
 // Os limites de x é (0, xl), de y é (0, yl) e de z é (0, zl)
-#define triforT(x, xl, y, yl, z, zl, T) \
-    biforT(x, xl, y, yl, T)             \
+#define triforT(x, xl, y, yl, z, zl, T)                       \
+    ONLY_IN_PARALLEL(_Pragma("omp parallel for collapse(3)")) \
+    biforT_s(x, xl, y, yl, T)                                 \
         for (T z = 0; z < zl; z++)
 
 // Esse é um for-aninhado de x e y, ambos inteiros, variando de 0 a {x|y}l
@@ -47,8 +59,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
      * Método Averaging
      * Método #1 de https://www.tannerhelland.com/3643/grayscale-image-algorithm-vb6/
      */
-    static void averaging(ImageType &i2d, ImageType &dst) {
-
+    static void averaging(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             unsigned int avg = (i2d(x, y, RED) + i2d(x, y, GREEN) + i2d(x, y, BLUE)) / 3;
             dst(x, y, RED) = dst(x, y, GREEN) = dst(x, y, BLUE) = avg;
@@ -61,7 +72,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
      * Método Luma
      * Método #2 de https://www.tannerhelland.com/3643/grayscale-image-algorithm-vb6/
      */
-    static void luma(ImageType &i2d, ImageType &dst) {
+    static void luma(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             unsigned int avg = (i2d(x, y, RED)*30 + i2d(x, y, GREEN)*59 + i2d(x, y, BLUE)*11) / 100;
             dst(x, y, RED) = dst(x, y, GREEN) = dst(x, y, BLUE) = avg;
@@ -73,7 +84,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
      * Método de detecção de bordas Sobel
      * Formulação da função G=SQRT(G_x^2 + G_y^2): https://en.wikipedia.org/wiki/Sobel_operator
      */
-    static void sobel(ImageType &i2d, ImageType &dst) {
+    static void sobel(const ImageType &i2d, ImageType &dst) {
         const auto pvmax = std::numeric_limits<typename ImageType::pixel_unit>::max();
         const auto maxdiv_p0 = 4*pvmax, maxdiv_p1 = 2*pvmax;
         const auto maxdiv = std::sqrt(maxdiv_p0*maxdiv_p0 + maxdiv_p1*maxdiv_p1);
@@ -92,7 +103,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
      * Formulação da função G=SQRT(G_x^2 + G_y^2): https://en.wikipedia.org/wiki/Sobel_operator
      * Tentei substituir a raiz quadrada por uma busca binária. Não deu muito certo :/
      */
-    static void sobel_v2(ImageType &i2d, ImageType &dst) {
+    static void sobel_v2(const ImageType &i2d, ImageType &dst) {
         using pu = typename ImageType::pixel_unit;
         const auto pvmax = std::numeric_limits<pu>::max();
         const auto maxdiv_p0 = 4*pvmax, maxdiv_p1 = 2*pvmax;
@@ -138,7 +149,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     /**
      * Método Blur colorido
      */
-    static void blur(ImageType &i2d, ImageType &dst) {
+    static void blur(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             uint pix[] = {0, 0, 0}, cc = 0;
             for (int dy = -2; dy <= 2; dy++) {
@@ -159,7 +170,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     /**
      * Método Desaturação
      */
-    static void desaturation(ImageType &i2d, ImageType &dst) {
+    static void desaturation(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             unsigned int gray =(std::max(std::max(i2d(x, y, RED), i2d(x, y, GREEN)), i2d(x, y, BLUE))+
                                 std::min(std::min(i2d(x, y, RED), i2d(x, y, GREEN)), i2d(x, y, BLUE)))/2;
@@ -169,7 +180,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     /**
      * Método Decomposição de max
      */
-    static void de_composition_max(ImageType &i2d, ImageType &dst) {
+    static void de_composition_max(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             unsigned int gray = std::max(std::max(i2d(x, y, RED), i2d(x, y, GREEN)), i2d(x, y, BLUE));
             dst(x, y, RED) = dst(x, y, GREEN) = dst(x, y, BLUE) = gray;
@@ -178,7 +189,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
     /**
      * Decomposição de min
      */
-    static void de_composition_min(ImageType &i2d, ImageType &dst) {
+    static void de_composition_min(const ImageType &i2d, ImageType &dst) {
         biforImg(i2d, x, y) {
             unsigned int gray = std::min(std::min(i2d(x, y, RED), i2d(x, y, GREEN)), i2d(x, y, BLUE));
             dst(x, y, RED) = dst(x, y, GREEN) = dst(x, y, BLUE) = gray;
@@ -190,7 +201,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
      * i2d: Ponteiro para a imagem original.
      * dst: Destino/Buffer temporário para a escrita da saída.
      */
-    void channel_close_algorithms(ImageType &i2d, ImageType &dst) const {
+    void channel_close_algorithms(const ImageType &i2d, ImageType &dst) const {
         if (isEnabled("averaging")) averaging(i2d, dst);
         if (isEnabled("luma")) luma(i2d, dst);
         if (isEnabled("sobel")) sobel(i2d, dst);
@@ -201,7 +212,7 @@ struct ImagingAlgorithms : public ImagingAlgorithmsBase {
         if (isEnabled("de_composition_min")) de_composition_min(i2d, dst);
     }
 
-    ImageType channel_close_algorithms(ImageType &i2d) const {
+    ImageType channel_close_algorithms(const ImageType &i2d) const {
         ImageType dst(i2d.getWidth(), i2d.getHeight(), i2d.getChannels());
         channel_close_algorithms(i2d, dst);
         return dst;
