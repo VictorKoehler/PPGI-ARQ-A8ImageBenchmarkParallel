@@ -1,7 +1,0 @@
-# Invoked with: 'output/bin/solver' '-d' '-a' 'sobel_v2' '-f' 'Pointers@XYC' 'input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg'
-# Started Simple Image Benchmark (9647b40)
-# Evaluating Pointers@XYC
-Pointers@XYC, input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg, 12821, 5591, 3, 30235507 microseconds
-# Evaluation of Pointers@XYC finished with a total of 30235507 microseconds
-# All benchmarks done, with a total sum of 30235507 microseconds,
-# or 56429056 microseconds counting with the overhead.

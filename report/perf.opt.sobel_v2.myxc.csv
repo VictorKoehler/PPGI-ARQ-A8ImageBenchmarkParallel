@@ -1,7 +1,0 @@
-# Invoked with: 'output/bin/solver' '-d' '-a' 'sobel_v2' '-f' 'MemBlock@YXC' 'input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg'
-# Started Simple Image Benchmark (9647b40)
-# Evaluating MemBlock@YXC
-MemBlock@YXC, input/Water_of_Leith_by_Keanu_Kerr.tmp.jpg, 12821, 5591, 3, 5164282 microseconds
-# Evaluation of MemBlock@YXC finished with a total of 5164282 microseconds
-# All benchmarks done, with a total sum of 5164282 microseconds,
-# or 6603707 microseconds counting with the overhead.
